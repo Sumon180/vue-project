@@ -1,40 +1,76 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
+import { useToast } from "vue-toast-notification";
 
 interface Todo {
-  id: number
-  text: string
-  completed: boolean
+  id: number;
+  text: string;
+  completed: boolean;
 }
 
-const todos = ref<Todo[]>([])
-const newTodo = ref('')
+const todos = ref<Todo[]>([]);
+const newTodo = ref("");
+const editingId = ref<number | null>(null);
+const editedText = ref("");
+const toast = useToast();
+
 const props = defineProps<{
-  title: string
-}>()
+  title: string;
+}>();
 
 const addTodo = () => {
-  if (newTodo.value.trim() === '') return
+  if (newTodo.value.trim() === "") return;
   todos.value.push({
     id: Date.now(),
     text: newTodo.value,
-    completed: false
-  })
-  newTodo.value = ''
-}
+    completed: false,
+  });
+  newTodo.value = "";
+  toast.success("Todo Created!", {
+    position: "bottom-left",
+  });
+};
 
 const toggleTodo = (id: number) => {
-  const todo = todos.value.find(t => t.id === id)
-  if (todo) todo.completed = !todo.completed
-}
+  const todo = todos.value.find((t) => t.id === id);
+  if (todo) todo.completed = !todo.completed;
+};
 
 const deleteTodo = (id: number) => {
-  todos.value = todos.value.filter(t => t.id !== id)
-}
+  todos.value = todos.value.filter((t) => t.id !== id);
+  toast.info("Deleted todo!", {
+    position: "bottom-left",
+  });
+};
+
+// Start editing a todo
+const startEdit = (todo: Todo) => {
+  editingId.value = todo.id;
+  editedText.value = todo.text;
+};
+
+// Confirm and apply edit
+const updateTodo = () => {
+  if (editingId.value === null) return;
+  const todo = todos.value.find((t) => t.id === editingId.value);
+  if (todo && editedText.value.trim() !== "") {
+    todo.text = editedText.value;
+  }
+  editingId.value = null;
+  editedText.value = "";
+};
+
+// Mark as complete via button
+const completeTodo = (id: number) => {
+  const todo = todos.value.find((t) => t.id === id);
+  if (todo) todo.completed = !todo.completed;
+};
 </script>
 
 <template>
-  <main class="max-w-md mx-auto mt-12 text-center font-sans bg-white text-black p-10 shadow-lg rounded-lg">
+  <main
+    class="max-w-2xl mx-auto mt-12 text-center font-sans bg-white text-black p-10 shadow-lg rounded-lg"
+  >
     <h1 class="text-2xl font-bold mb-10">{{ props.title }}</h1>
 
     <form @submit.prevent="addTodo" class="flex gap-2 justify-center mb-4">
@@ -56,17 +92,58 @@ const deleteTodo = (id: number) => {
       <li
         v-for="todo in todos"
         :key="todo.id"
-        :class="['bg-gray-100 px-4 py-3 mb-2 flex justify-between items-center rounded cursor-pointer', todo.completed ? 'line-through text-gray-500' : '']"
+        class="bg-gray-100 px-4 py-3 mb-2 flex justify-between items-center gap-2 rounded"
       >
-        <span @click="toggleTodo(todo.id)">
-          {{ todo.text }}
-        </span>
-        <button
-          @click="deleteTodo(todo.id)"
-          class="text-red-500 hover:text-red-700 text-xl"
-        >
-          🗑️
-        </button>
+        <div class="flex-1 text-left">
+          <template v-if="editingId === todo.id">
+            <input
+              v-model="editedText"
+              @keyup.enter="updateTodo"
+              class="border border-gray-300 rounded px-2 py-1 w-full"
+            />
+          </template>
+          <template v-else>
+            <span
+              @click="toggleTodo(todo.id)"
+              :class="[
+                'cursor-pointer',
+                todo.completed ? 'line-through text-gray-500' : '',
+              ]"
+            >
+              {{ todo.text }}
+            </span>
+          </template>
+        </div>
+        <div class="flex gap-2">
+          <template v-if="editingId === todo.id">
+            <button
+              @click="updateTodo"
+              class="text-blue-600 cursor-pointer bg-blue-200 px-3 py-1.5 rounded-sm text-sm"
+            >
+              Save
+            </button>
+          </template>
+          <template v-else>
+            <button
+              @click="startEdit(todo)"
+              class="text-blue-600 cursor-pointer bg-blue-200 px-3 py-1.5 rounded-sm text-sm"
+            >
+              Edit
+            </button>
+            <button
+              @click="completeTodo(todo.id)"
+              class="text-green-600 cursor-pointer bg-green-200 px-3 py-1.5 rounded-sm text-sm"
+            >
+              Complete
+            </button>
+          </template>
+          <button
+            @click="deleteTodo(todo.id)"
+            class="text-red-500 hover:text-red-700 text-xl cursor-pointer"
+          >
+            🗑️
+          </button>
+        </div>
       </li>
     </ul>
   </main>
