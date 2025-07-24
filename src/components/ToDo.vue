@@ -35,7 +35,7 @@ const deleteTodo = (id: number) => {
 
 <template>
   <main class="max-w-md mx-auto mt-12 text-center font-sans bg-white text-black p-10 shadow-lg rounded-lg">
-    <h1 class="text-2xl font-bold mb-4">{{ props.title }}</h1>
+    <h1 class="text-2xl font-bold mb-10">{{ props.title }}</h1>
 
     <form @submit.prevent="addTodo" class="flex gap-2 justify-center mb-4">
       <input
