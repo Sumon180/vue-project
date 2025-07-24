@@ -1,69 +1,18 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { useToast } from "vue-toast-notification";
+import { todoStore } from "../store/todoStore";
 
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-}
-
-const todos = ref<Todo[]>([]);
-const newTodo = ref("");
-const editingId = ref<number | null>(null);
-const editedText = ref("");
 const toast = useToast();
+const props = defineProps<{ title: string }>();
 
-const props = defineProps<{
-  title: string;
-}>();
-
-const addTodo = () => {
-  if (newTodo.value.trim() === "") return;
-  todos.value.push({
-    id: Date.now(),
-    text: newTodo.value,
-    completed: false,
-  });
-  newTodo.value = "";
-  toast.success("Todo Created!", {
-    position: "bottom-left",
-  });
+const handleAdd = () => {
+  todoStore.addTodo();
+  toast.success("Todo Created!", { position: "bottom-left" });
 };
 
-const toggleTodo = (id: number) => {
-  const todo = todos.value.find((t) => t.id === id);
-  if (todo) todo.completed = !todo.completed;
-};
-
-const deleteTodo = (id: number) => {
-  todos.value = todos.value.filter((t) => t.id !== id);
-  toast.info("Deleted todo!", {
-    position: "bottom-left",
-  });
-};
-
-// Start editing a todo
-const startEdit = (todo: Todo) => {
-  editingId.value = todo.id;
-  editedText.value = todo.text;
-};
-
-// Confirm and apply edit
-const updateTodo = () => {
-  if (editingId.value === null) return;
-  const todo = todos.value.find((t) => t.id === editingId.value);
-  if (todo && editedText.value.trim() !== "") {
-    todo.text = editedText.value;
-  }
-  editingId.value = null;
-  editedText.value = "";
-};
-
-// Mark as complete via button
-const completeTodo = (id: number) => {
-  const todo = todos.value.find((t) => t.id === id);
-  if (todo) todo.completed = !todo.completed;
+const handleDelete = (id: number) => {
+  todoStore.deleteTodo(id);
+  toast.info("Deleted todo!", { position: "bottom-left" });
 };
 </script>
 
@@ -73,9 +22,9 @@ const completeTodo = (id: number) => {
   >
     <h1 class="text-2xl font-bold mb-10">{{ props.title }}</h1>
 
-    <form @submit.prevent="addTodo" class="flex gap-2 justify-center mb-4">
+    <form @submit.prevent="handleAdd" class="flex gap-2 justify-center mb-4">
       <input
-        v-model="newTodo"
+        v-model="todoStore.newTodo"
         type="text"
         placeholder="Enter a new todo"
         class="px-3 py-2 flex-1 text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -90,21 +39,21 @@ const completeTodo = (id: number) => {
 
     <ul class="list-none p-0">
       <li
-        v-for="todo in todos"
+        v-for="todo in todoStore.todos"
         :key="todo.id"
         class="bg-gray-100 px-4 py-3 mb-2 flex justify-between items-center gap-2 rounded"
       >
         <div class="flex-1 text-left">
-          <template v-if="editingId === todo.id">
+          <template v-if="todoStore.editingId === todo.id">
             <input
-              v-model="editedText"
-              @keyup.enter="updateTodo"
+              v-model="todoStore.editedText"
+              @keyup.enter="todoStore.updateTodo"
               class="border border-gray-300 rounded px-2 py-1 w-full"
             />
           </template>
           <template v-else>
             <span
-              @click="toggleTodo(todo.id)"
+              @click="todoStore.isCompleteTodo(todo.id)"
               :class="[
                 'cursor-pointer',
                 todo.completed ? 'line-through text-gray-500' : '',
@@ -115,9 +64,9 @@ const completeTodo = (id: number) => {
           </template>
         </div>
         <div class="flex gap-2">
-          <template v-if="editingId === todo.id">
+          <template v-if="todoStore.editingId === todo.id">
             <button
-              @click="updateTodo"
+              @click="todoStore.updateTodo"
               class="text-blue-600 cursor-pointer bg-blue-200 px-3 py-1.5 rounded-sm text-sm"
             >
               Save
@@ -125,20 +74,20 @@ const completeTodo = (id: number) => {
           </template>
           <template v-else>
             <button
-              @click="startEdit(todo)"
+              @click="todoStore.startEdit(todo)"
               class="text-blue-600 cursor-pointer bg-blue-200 px-3 py-1.5 rounded-sm text-sm"
             >
               Edit
             </button>
             <button
-              @click="completeTodo(todo.id)"
+              @click="todoStore.isCompleteTodo(todo.id)"
               class="text-green-600 cursor-pointer bg-green-200 px-3 py-1.5 rounded-sm text-sm"
             >
               Complete
             </button>
           </template>
           <button
-            @click="deleteTodo(todo.id)"
+            @click="handleDelete(todo.id)"
             class="text-red-500 hover:text-red-700 text-xl cursor-pointer"
           >
             🗑️
